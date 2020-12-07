@@ -62,18 +62,42 @@ jobs:
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
 
-      - uses: azure/docker-login@v1
+      #- uses: azure/docker-login@v1
+        #with:
+          #login-server: ${{env.IMAGE_REGISTRY_URL}}
+          #username: ${{ github.actor }}
+          #password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Configure webapp to use GitHub Packages
+        uses: Azure/appservice-settings@v1
         with:
-          login-server: ${{env.IMAGE_REGISTRY_URL}}
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+         app-name: ${{env.AZURE_WEBAPP_NAME}}
+         app-settings-json: |
+           [
+               {
+                   "name": "DOCKER_REGISTRY_SERVER_PASSWORD",
+                   "value": "${{ secrets.PACKAGE_PAT }}",
+                   "slotSetting": false
+               },
+               {
+                   "name": "DOCKER_REGISTRY_SERVER_URL",
+                   "value": "${{env.IMAGE_REGISTRY_URL}}",
+                   "slotSetting": false
+               },
+               {
+                   "name": "DOCKER_REGISTRY_SERVER_USERNAME",
+                   "value": "${{ github.actor }}",
+                   "slotSetting": false
+               }
+           ]
 
       - name: Deploy web app container
         uses: azure/webapps-deploy@v2
         with:
           app-name: ${{env.AZURE_WEBAPP_NAME}}
           images: ${{env.IMAGE_REGISTRY_URL}}/${{ github.repository }}/${{env.DOCKER_IMAGE_NAME}}:${{ github.sha }}
-
+          
+          
       - name: Azure logout
         run: |
           az logout
